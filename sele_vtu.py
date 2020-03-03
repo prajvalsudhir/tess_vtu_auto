@@ -8,10 +8,11 @@ import pytesseract
 import cv2
 import csv
 import time
+import os
 
 
 
-cdriver = "C:\\Users\\prajv\\Downloads\\chromedriver_win32\\chromedriver"
+cdriver = os.path.abspath(os.path.join(os.path.dirname(__file__),"chromedriver_win32\\chromedriver"))
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 print(cdriver)
 
