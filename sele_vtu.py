@@ -9,8 +9,6 @@ import cv2
 import csv
 import time
 
-
-
 cdriver = "C:\\Users\\prajv\\Downloads\\chromedriver_win32\\chromedriver"
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 print(cdriver)
@@ -18,13 +16,10 @@ print(cdriver)
 #
 driver = webdriver.Chrome(cdriver)
 
-
-driver.get("https://results.vtu.ac.in/_CBCS/index.php")
-
+# driver.get("https://results.vtu.ac.in/_CBCS/index.php")
 
 final_csv = []
 field_names = ["Student Name", "Student USN"]
-
 
 
 # find = driver.find_elements_by_xpath('//*[(@id = "raj")]//*[contains(concat( " ", @class, " " ), concat( " ", "col-md-12", " " ))]//*[contains(concat( " ", @class, " " ), concat( " ", "form-control", " " ))]')
@@ -56,28 +51,29 @@ def captcha():
     for col in range(0, cropped_image.height):
         for row in range(0, cropped_image.width):
             # print(pixel_matrix[row, col])
-            if pixel_matrix[row, col] > 136:
+            if pixel_matrix[row, col] > 150:
                 pixel_matrix[row, col] = 255  # where 255 = white pixel and 0 = pure black pixel
             else:
                 pixel_matrix[row, col] = 0
 
-    for column in range(1, cropped_image.height - 1):
-        for row in range(1, cropped_image.width - 1):
+    for column in range(0, cropped_image.height - 1):
+        for row in range(0, cropped_image.width - 1):
             if pixel_matrix[row, column] == 0 \
-                    and pixel_matrix[row, column - 2.7] == 255 and pixel_matrix[row, column + 2.7] == 255:
+                    and pixel_matrix[row, column - 1.9] == 255 and pixel_matrix[row, column + 1.9] == 255:
                 pixel_matrix[row, column] = 255
             if pixel_matrix[row, column] == 0 \
-                    and pixel_matrix[row - 2.3, column] == 255 and pixel_matrix[row + 2.3, column] == 255:
+                    and pixel_matrix[row - 3.2, column] == 255 and pixel_matrix[row + 3.2, column] == 255:
                 pixel_matrix[row, column] = 255
 
     cropped_image.save('thresholded_image.png')
     img3 = cv2.imread('thresholded_image.png', 0)
     img3 = cv2.medianBlur(img3, 5)
-    # img3 = cv2.medianBlur(img3,5)
+    img3 = cv2.medianBlur(img3, 5)
+    img3 = cv2.threshold(img3, 0, 255, cv2.THRESH_OTSU)
     # img3 = cv2.GaussianBlur(img3,(5,5),0)
     # img3 = cv2.adaptiveThreshold(img3,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
     #                              cv2.THRESH_BINARY,11,2)
-    cv2.imwrite('out_img3.jpg', img3)
+    cv2.imwrite('out_img3.jpg', img3[1])
     cv2.waitKey(0)
 
     tess = pytesseract.image_to_string(cv2.imread('out_img3.jpg'))
@@ -92,107 +88,131 @@ def captcha():
     return res
 
 
+time.perf_counter()
 # #
 
-with open('pp.csv') as csvfile:
+attempt = 1
+
+with open('5SEM-2019.csv') as csvfile:
     reader = csv.DictReader(csvfile)
     print(reader)
     for row in reader:
-      minor_field_name = ["Student Name", "Student USN", "Subject Code", "Subject Name", "Internal Marks",
+        minor_field_name = ["Student Name", "Student USN", "Subject Code", "Subject Name", "Internal Marks",
                             "External Marks", "Total", "Result"]
 
-      result = {}
-      minor_final_result = []
-      flag = 0
-      while flag!=1:
-          try:
-              usn = row['usn']
-              find = driver.find_elements_by_xpath('//*[@id="raj"]/div[1]/div/input')
-              for i in range(len(find)):
-                  find[i].send_keys(usn)
+        result = {}
+        minor_final_result = []
+        flag = 0
+        # attempt = 0
+        driver.get("https://results.vtu.ac.in/_CBCS/index.php")
+        while flag != 1:
+            print(attempt)
+            # if(attempt==4):
+            if (attempt % 4 == 0):
+                time.sleep(45)
+                driver.refresh()
+                # driver.get("https://results.vtu.ac.in/_CBCS/index.php")
+                # time.sleep(10)
 
-              time.sleep(1)
+            try:
+                usn = row['Usn']
+                find = driver.find_elements_by_xpath('//*[@id="raj"]/div[1]/div/input')
+                for i in range(len(find)):
+                    find[i].send_keys(usn)
 
-              find1 = driver.find_elements_by_xpath('//*[@id="raj"]/div[2]/div[1]/input')
-              for i in range(len(find1)):
-                  find1[i].send_keys(captcha())
+                time.sleep(1)
 
-              find2 = driver.find_elements_by_xpath('//*[@id="submit"]')
-              for i in range(len(find2)):
-                  find2[i].click()
+                find1 = driver.find_elements_by_xpath('//*[@id="raj"]/div[2]/div[1]/input')
+                for i in range(len(find1)):
+                    find1[i].send_keys(captcha())
 
-              if(driver.find_elements_by_xpath('//*[@id="dataPrint"]/div[2]/div/div/div[2]/div[1]/div/div/div[1]/div')):
-                  flag =1
-                  # excel_auto.auto_map()
-                  # print(excel_auto.minor_final_result)
-                  # excel_auto.auto_write()
+                driver.find_element_by_id('submit').click()
+                attempt += 1
+                # print(attempt)
+                # if (attempt == 4):
+                #   driver.close()
+                #   time.sleep(60)
+                #   driver.get("https://results.vtu.ac.in/_CBCS/index.php")
 
-                  student_deatils_table = driver.find_element_by_xpath("//table[1]")
-                  result["Student Name"] = student_deatils_table.find_elements_by_tag_name("td")[3].text[2:]
-                  result["Student USN"] = usn
+                # find2 = driver.find_elements_by_xpath('//*[@id="submit"]')
+                # for i in range(len(find2)):
+                #     find2[i].click()
 
-                  final_result_table = driver.find_elements_by_tag_name("table")[1]
-                  # result["Total Marks"] = final_result_table.find_elements_by_tag_name("td")[1].text[2:]
-                  # result["Result"] = final_result_table.find_elements_by_tag_name("td")[3].text[2:]
+                if (
+                        driver.find_elements_by_xpath(
+                            '//*[@id="dataPrint"]/div[2]/div/div/div[2]/div[1]/div/div/div[1]/div')):
+                    flag = 1
+                    # if(attempt==4):
+                    #     driver.close()
+                    #     time.sleep(60)
+                    # excel_auto.auto_map()
+                    # print(excel_auto.minor_final_result)
+                    # excel_auto.auto_write()
 
-                  marks_table = driver.find_elements_by_class_name("divTable")[0]
-                  for cell in marks_table.find_elements_by_class_name("divTableRow")[1:]:
-                      minor_result = {}
-                      minor_result["Student Name"] = student_deatils_table.find_elements_by_tag_name("td")[3].text[2:]
-                      minor_result["Student USN"] = usn
-                      # minor_result["Overall Marks"] = final_result_table.find_elements_by_tag_name("td")[1].text[2:]
-                      # minor_result["Overall Result"] = final_result_table.find_elements_by_tag_name("td")[3].text[2:]
+                    student_deatils_table = driver.find_element_by_xpath("//table[1]")
+                    result["Student Name"] = student_deatils_table.find_elements_by_tag_name("td")[3].text[2:]
+                    result["Student USN"] = usn
 
-                      minor_result["Subject Code"] = cell.find_elements_by_class_name("divTableCell")[0].text
-                      minor_result["Subject Name"] = cell.find_elements_by_class_name("divTableCell")[1].text
-                      # print ("minor result = " + str(minor_result))
-                      if cell.find_elements_by_class_name("divTableCell")[0].text not in field_names:
-                          if cell.find_elements_by_class_name("divTableCell")[
-                              0].text + " Internal Marks" not in field_names:
-                              field_names.append(
-                                  cell.find_elements_by_class_name("divTableCell")[0].text + " Internal Marks")
-                          if cell.find_elements_by_class_name("divTableCell")[
-                              0].text + " External Marks" not in field_names:
-                              field_names.append(
-                                  cell.find_elements_by_class_name("divTableCell")[0].text + " External Marks")
-                          if cell.find_elements_by_class_name("divTableCell")[0].text + " Total" not in field_names:
-                              field_names.append(cell.find_elements_by_class_name("divTableCell")[0].text + " Total")
-                          if cell.find_elements_by_class_name("divTableCell")[0].text + " Result" not in field_names:
-                              field_names.append(cell.find_elements_by_class_name("divTableCell")[0].text + " Result")
+                    final_result_table = driver.find_elements_by_tag_name("table")[1]
+                    # result["Total Marks"] = final_result_table.find_elements_by_tag_name("td")[1].text[2:]
+                    # result["Result"] = final_result_table.find_elements_by_tag_name("td")[3].text[2:]
 
-                      result[cell.find_elements_by_class_name("divTableCell")[0].text + " Internal Marks"] = \
-                      cell.find_elements_by_class_name("divTableCell")[2].text
-                      minor_result["Internal Marks"] = cell.find_elements_by_class_name("divTableCell")[2].text
-                      result[cell.find_elements_by_class_name("divTableCell")[0].text + " External Marks"] = \
-                      cell.find_elements_by_class_name("divTableCell")[3].text
-                      minor_result["External Marks"] = cell.find_elements_by_class_name("divTableCell")[3].text
-                      result[cell.find_elements_by_class_name("divTableCell")[0].text + " Total"] = \
-                      cell.find_elements_by_class_name("divTableCell")[4].text
-                      minor_result["Total Marks"] = cell.find_elements_by_class_name("divTableCell")[4].text
-                      result[cell.find_elements_by_class_name("divTableCell")[0].text + " Result"] = \
-                      cell.find_elements_by_class_name("divTableCell")[5].text
-                      minor_result["Result"] = cell.find_elements_by_class_name("divTableCell")[5].text
+                    marks_table = driver.find_elements_by_class_name("divTable")[0]
+                    for cell in marks_table.find_elements_by_class_name("divTableRow")[1:]:
+                        minor_result = {}
+                        minor_result["Student Name"] = student_deatils_table.find_elements_by_tag_name("td")[3].text[2:]
+                        minor_result["Student USN"] = usn
+                        # minor_result["Overall Marks"] = final_result_table.find_elements_by_tag_name("td")[1].text[2:]
+                        # minor_result["Overall Result"] = final_result_table.find_elements_by_tag_name("td")[3].text[2:]
 
-                      minor_final_result.append(minor_result)
-                  driver.get("https://results.vtu.ac.in/_CBCS/index.php")
-          except:
-              continue
+                        minor_result["Subject Code"] = cell.find_elements_by_class_name("divTableCell")[0].text
+                        minor_result["Subject Name"] = cell.find_elements_by_class_name("divTableCell")[1].text
+                        # print ("minor result = " + str(minor_result))
+                        if cell.find_elements_by_class_name("divTableCell")[0].text not in field_names:
+                            if cell.find_elements_by_class_name("divTableCell")[
+                                0].text + " Internal Marks" not in field_names:
+                                field_names.append(
+                                    cell.find_elements_by_class_name("divTableCell")[0].text + " Internal Marks")
+                            if cell.find_elements_by_class_name("divTableCell")[
+                                0].text + " External Marks" not in field_names:
+                                field_names.append(
+                                    cell.find_elements_by_class_name("divTableCell")[0].text + " External Marks")
+                            if cell.find_elements_by_class_name("divTableCell")[0].text + " Total" not in field_names:
+                                field_names.append(cell.find_elements_by_class_name("divTableCell")[0].text + " Total")
+                            if cell.find_elements_by_class_name("divTableCell")[0].text + " Result" not in field_names:
+                                field_names.append(cell.find_elements_by_class_name("divTableCell")[0].text + " Result")
 
-      final_csv.append(result)
+                        result[cell.find_elements_by_class_name("divTableCell")[0].text + " Internal Marks"] = \
+                            cell.find_elements_by_class_name("divTableCell")[2].text
+                        minor_result["Internal Marks"] = cell.find_elements_by_class_name("divTableCell")[2].text
+                        result[cell.find_elements_by_class_name("divTableCell")[0].text + " External Marks"] = \
+                            cell.find_elements_by_class_name("divTableCell")[3].text
+                        minor_result["External Marks"] = cell.find_elements_by_class_name("divTableCell")[3].text
+                        result[cell.find_elements_by_class_name("divTableCell")[0].text + " Total"] = \
+                            cell.find_elements_by_class_name("divTableCell")[4].text
+                        minor_result["Total Marks"] = cell.find_elements_by_class_name("divTableCell")[4].text
+                        result[cell.find_elements_by_class_name("divTableCell")[0].text + " Result"] = \
+                            cell.find_elements_by_class_name("divTableCell")[5].text
+                        minor_result["Result"] = cell.find_elements_by_class_name("divTableCell")[5].text
+
+                        minor_final_result.append(minor_result)
+
+                driver.get("https://results.vtu.ac.in/_CBCS/index.php")
+
+            except:
+                continue
+
+        final_csv.append(result)
     print(final_csv)
 
+print(time.perf_counter())
 
 with open('vtu_excel.csv', 'w') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=field_names)
-        writer.writeheader()
+    writer = csv.DictWriter(csvfile, fieldnames=field_names)
+    writer.writeheader()
 
-        for row in final_csv:
-            writer.writerow(row)
-
-
-
-
-
+    for row in final_csv:
+        writer.writerow(row)
 
 #
 #
@@ -206,9 +226,3 @@ with open('vtu_excel.csv', 'w') as csvfile:
 #     find2[i].click()
 #
 # driver.switch_to.alert.accept()
-
-
-
-
-# driver.close()
-
